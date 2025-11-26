@@ -139,22 +139,7 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
     };
   }, [results, minimumResults]);
 
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    // Add file size check
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_FILE_SIZE) {
-      setImportStatus({
-        type: 'error',
-        message: 'El archivo es demasiado grande. El tamaño máximo es 5MB'
-      });
-      return;
-    }
-
-    // Rest of the code...
-  };
 
   const handleBudgetChange = (value: string) => {
     // Remove non-numeric characters except decimal point

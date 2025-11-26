@@ -142,13 +142,14 @@ export function Charts({ debts, paymentPlan }: ChartsProps) {
     }
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipItem { name: string; value: number; color?: string; }
+  interface CustomTooltipProps { active?: boolean; payload?: TooltipItem[]; label?: string; }
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload) return null;
-    
     return (
       <div className="bg-white p-4 rounded shadow-lg border">
         <p className="font-semibold">{label}</p>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item, index) => (
           <p key={index} style={{ color: item.color }}>
             {`${item.name}: ${formatCurrency(item.value)}`}
           </p>

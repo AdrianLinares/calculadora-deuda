@@ -12,7 +12,7 @@ export function useIsMobile() {
     const mql = window.matchMedia(`(max-width: ${BREAKPOINTS.MOBILE - 1}px)`);
     
     const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
+      setIsMobile('matches' in e ? e.matches : (e as MediaQueryList).matches);
     };
 
     // Initial check
@@ -32,29 +32,3 @@ export function useIsMobile() {
 
   return isMobile;
 }
-
-// In components that fetch data
-const [isLoading, setIsLoading] = useState(false);
-
-useEffect(() => {
-  setIsLoading(true);
-  // Fetch data
-  setIsLoading(false);
-}, []);
-
-const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  // Add file size check
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  if (file.size > MAX_FILE_SIZE) {
-    setImportStatus({
-      type: 'error',
-      message: 'El archivo es demasiado grande. El tamaño máximo es 5MB'
-    });
-    return;
-  }
-
-  // Rest of the code...
-};

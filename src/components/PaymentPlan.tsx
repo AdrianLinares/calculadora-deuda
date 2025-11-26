@@ -187,7 +187,7 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Progreso Total</p>
+                <p className="text-sm text-muted-foreground">Progreso del Principal</p>
                 <p className="text-2xl font-bold">{progressPercentage.toFixed(1)}%</p>
               </div>
               <div className="flex-1 mx-4">

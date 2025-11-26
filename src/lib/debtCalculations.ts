@@ -64,6 +64,8 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
   const startDate = new Date();
   startDate.setHours(0, 0, 0, 0); // Normalize to start of day
 
+  const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+  let appliedExtraThisMonth = false;
   while (workingDebts.some(debt => debt.balance > 0)) {
     month++;
     const currentDate = new Date(startDate);
@@ -84,12 +86,12 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
       .reduce((sum, debt) => sum + debt.minimumPayment, 0);
 
     if (minimumTotal > monthlyBudget) {
-      // Not enough budget for minimum payments
-      break;
+      throw new Error('INSUFFICIENT_BUDGET');
     }
 
-    // Extra amount for snowball
+    // Extra amount for snowball (only first unpaid debt gets it unless leftover remains)
     let extraAmount = monthlyBudget - minimumTotal;
+    appliedExtraThisMonth = false;
 
     // Process each debt
     for (const debt of workingDebts) {
@@ -110,23 +112,26 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
       const startingBalance = debt.balance;
       const monthlyInterest = calculateMonthlyInterest(debt.balance, debt.interestRate);
       
-      // Determine payment amount
+      // Determine payment amount (minimum + possible extra only once per month)
       let payment = debt.minimumPayment;
-      
-      // Apply extra amount to the first debt (smallest balance)
-      const isTargetDebt = workingDebts.findIndex(d => d.balance > 0) === workingDebts.indexOf(debt);
-      if (isTargetDebt) {
+      if (!appliedExtraThisMonth && extraAmount > 0) {
         payment += extraAmount;
-        extraAmount = 0; // Used up the extra amount
+        appliedExtraThisMonth = true;
+        extraAmount = 0;
       }
 
-      // Ensure payment doesn't exceed balance + interest
+      // Cap at balance + interest; carry leftover to next debt
       const maxPayment = debt.balance + monthlyInterest;
-      payment = Math.min(payment, maxPayment);
+      if (payment > maxPayment) {
+        const leftover = payment - maxPayment;
+        payment = maxPayment;
+        // Allow leftover to be applied to next debt in same month
+        extraAmount += leftover;
+      }
 
-      const interestPaid = monthlyInterest;
-      const principalPaid = payment - interestPaid;
-      const endingBalance = Math.max(0, debt.balance - principalPaid);
+      const interestPaid = round2(monthlyInterest);
+      const principalPaid = round2(payment - interestPaid);
+      const endingBalance = round2(Math.max(0, debt.balance - principalPaid));
 
       debt.balance = endingBalance;
       totalInterest += interestPaid;
@@ -158,6 +163,9 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
   const debtFreeDate = new Date(startDate);
   debtFreeDate.setMonth(debtFreeDate.getMonth() + month);
 
+  // Round aggregate totals
+  totalInterest = round2(totalInterest);
+  totalPaid = round2(totalPaid);
   return {
     paymentPlan,
     totalMonths: month,
