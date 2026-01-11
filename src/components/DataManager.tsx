@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, Upload, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Debt } from '@/lib/debtCalculations';
+import { DEBT_LIMITS } from '@/lib/constants';
 import { toast } from '@/hooks/use-toast';
 import { ErrorBoundary } from 'react-error-boundary';
 import {
@@ -42,6 +43,35 @@ const FILE_CONSTANTS = {
   VERSION: '1.0.0'
 } as const;
 
+/**
+ * Valida que un objeto sea una deuda válida
+ * @param debt - Objeto a validar
+ * @returns true si la deuda es válida
+ */
+function validateDebt(debt: unknown): debt is Debt {
+  if (!debt || typeof debt !== 'object') return false;
+
+  const d = debt as Record<string, unknown>;
+
+  return (
+    typeof d.id === 'string' &&
+    typeof d.name === 'string' &&
+    d.name.length > 0 &&
+    d.name.length <= DEBT_LIMITS.MAX_NAME_LENGTH &&
+    typeof d.balance === 'number' &&
+    d.balance > DEBT_LIMITS.MIN_BALANCE &&
+    d.balance <= DEBT_LIMITS.MAX_BALANCE &&
+    typeof d.interestRate === 'number' &&
+    d.interestRate >= DEBT_LIMITS.MIN_INTEREST_RATE &&
+    d.interestRate <= DEBT_LIMITS.MAX_INTEREST_RATE &&
+    typeof d.minimumPayment === 'number' &&
+    d.minimumPayment > DEBT_LIMITS.MIN_BALANCE &&
+    d.minimumPayment <= d.balance &&
+    typeof d.startDate === 'string' &&
+    !isNaN(Date.parse(d.startDate))
+  );
+}
+
 export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudget }: DataManagerProps) {
   const [importStatus, setImportStatus] = useState<{
     type: 'success' | 'error' | null;
@@ -55,12 +85,12 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
     try {
       setDownloadProgress(0);
       setIsLoading(true);
-      
+
       // Simulate progress
       const interval = setInterval(() => {
         setDownloadProgress(prev => Math.min(prev + 10, 90));
       }, 100);
-      
+
       const exportData: ExportData = {
         version: '1.0.0',
         exportDate: new Date().toISOString(),
@@ -75,13 +105,13 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
 
       const dataStr = JSON.stringify(exportData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      
+
       const link = document.createElement('a');
       link.href = URL.createObjectURL(dataBlob);
-      
+
       const fileName = `deudas_bola_nieve_${new Date().toISOString().split('T')[0]}.json`;
       link.download = fileName;
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -145,36 +175,25 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
           throw new Error('Estructura de datos inválida: no se encontraron deudas');
         }
 
-        // Validate each debt object
-        const validatedDebts: Debt[] = importData.debts.map((debt, index) => {
-          if (!debt.id || !debt.name || typeof debt.balance !== 'number' || 
-              typeof debt.interestRate !== 'number' || typeof debt.minimumPayment !== 'number' || 
-              !debt.startDate) {
-            throw new Error(`Deuda ${index + 1} tiene datos inválidos`);
-          }
+        // Validate each debt object using the validateDebt function
+        const validatedDebts: Debt[] = importData.debts.filter(validateDebt);
 
-          return {
-            id: debt.id,
-            name: debt.name,
-            balance: Number(debt.balance),
-            interestRate: Number(debt.interestRate),
-            minimumPayment: Number(debt.minimumPayment),
-            startDate: debt.startDate
-          };
-        });
+        if (validatedDebts.length !== importData.debts.length) {
+          const invalidCount = importData.debts.length - validatedDebts.length;
+          throw new Error(`${invalidCount} deuda(s) inválida(s) fueron descartada(s) durante la importación`);
+        }
 
         // Import the data
         onImportDebts(validatedDebts);
-        
+
         if (importData.monthlyBudget && typeof importData.monthlyBudget === 'number') {
           onImportBudget(importData.monthlyBudget);
         }
 
         setImportStatus({
           type: 'success',
-          message: `Importación exitosa: ${validatedDebts.length} deudas cargadas${
-            importData.monthlyBudget ? ` y presupuesto de $${importData.monthlyBudget.toLocaleString()}` : ''
-          }`
+          message: `Importación exitosa: ${validatedDebts.length} deudas cargadas${importData.monthlyBudget ? ` y presupuesto de $${importData.monthlyBudget.toLocaleString()}` : ''
+            }`
         });
 
       } catch (error) {
@@ -253,7 +272,7 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
   useEffect(() => {
     const lastBackup = localStorage.getItem('lastBackupDate');
     const BACKUP_REMINDER_DAYS = 7;
-    
+
     if (!lastBackup || (Date.now() - new Date(lastBackup).getTime()) > (BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000)) {
       toast({
         title: "Recordatorio de respaldo",
@@ -273,7 +292,7 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            
+
             {/* Current Data Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
               <div className="text-center">
@@ -300,8 +319,8 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
               <p className="text-sm text-muted-foreground">
                 Descarga todos tus datos (deudas y presupuesto) en un archivo JSON para respaldo o transferencia.
               </p>
-              <Button 
-                onClick={exportToJSON} 
+              <Button
+                onClick={exportToJSON}
                 className="w-full md:w-auto"
                 disabled={debts.length === 0 || isLoading}
               >
@@ -351,8 +370,8 @@ export function DataManager({ debts, monthlyBudget, onImportDebts, onImportBudge
               <p className="text-sm text-muted-foreground">
                 Elimina permanentemente todos los datos almacenados.
               </p>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
                 className="w-full md:w-auto"
               >

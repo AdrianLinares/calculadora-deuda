@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Download, Calendar, CheckCircle, TrendingDown } from 'lucide-react';
 import { PaymentMonth } from '@/lib/debtCalculations';
+import { toast } from '@/hooks/use-toast';
 
 interface PaymentPlanProps {
   paymentPlan: PaymentMonth[];
@@ -62,16 +63,16 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
   };
 
   // Get unique years for filtering
-  const years = Array.from(new Set(paymentPlan.map(month => 
+  const years = Array.from(new Set(paymentPlan.map(month =>
     new Date(month.date).getFullYear().toString()
   ))).sort();
 
   // Filter months based on selected year
-  const filteredPlan = selectedYear === 'all' 
-    ? paymentPlan 
-    : paymentPlan.filter(month => 
-        new Date(month.date).getFullYear().toString() === selectedYear
-      );
+  const filteredPlan = selectedYear === 'all'
+    ? paymentPlan
+    : paymentPlan.filter(month =>
+      new Date(month.date).getFullYear().toString() === selectedYear
+    );
 
   // Show only first 12 months unless "show all" is clicked
   const displayedPlan = showAllMonths ? filteredPlan : filteredPlan.slice(0, 12);
@@ -81,8 +82,8 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
     return sum + month.debts.reduce((monthSum, debt) => monthSum + debt.principalPaid, 0);
   }, 0);
 
-  const progressPercentage = totalDebtAmount > 0 
-    ? (totalPaidSoFar / totalDebtAmount) * 100 
+  const progressPercentage = totalDebtAmount > 0
+    ? (totalPaidSoFar / totalDebtAmount) * 100
     : 0;
 
   // Get debt completion timeline
@@ -107,7 +108,7 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
     try {
       setIsExporting(true);
       const headers = ['Mes', 'Fecha', 'Deuda', 'Saldo Inicial', 'Pago', 'Interés', 'Principal', 'Saldo Final', 'Completada'];
-      const rows = paymentPlan.flatMap(month => 
+      const rows = paymentPlan.flatMap(month =>
         month.debts.map(debt => [
           month.month,
           month.date,
@@ -132,7 +133,11 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
       link.click();
     } catch (error) {
       console.error('Export failed:', error);
-      // Add error notification
+      toast({
+        title: "Error",
+        description: "No se pudo exportar el plan de pago. Por favor intenta nuevamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsExporting(false);
     }
@@ -244,8 +249,8 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium">Filtrar por año:</label>
-              <select 
-                value={selectedYear} 
+              <select
+                value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="px-3 py-1 border rounded-md text-sm"
               >
@@ -276,7 +281,7 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
                     {displayedPlan.map((month) => {
                       const targetDebt = month.debts.find(debt => debt.payment > debt.startingBalance * 0.1 && debt.startingBalance > 0);
                       const completedThisMonth = month.debts.filter(debt => debt.isCompleted && debt.startingBalance > 0);
-                      
+
                       return (
                         <TableRow key={month.month}>
                           <TableCell className="font-medium">{month.month}</TableCell>
@@ -325,8 +330,8 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
 
               {!showAllMonths && filteredPlan.length > 12 && (
                 <div className="p-4 text-center border-t">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setShowAllMonths(true)}
                   >
                     Mostrar todos los {filteredPlan.length} meses
@@ -340,7 +345,7 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
         <TabsContent value="summary" className="space-y-4">
           <div className="grid gap-4">
             {paymentPlan.length > 0 && paymentPlan[0].debts.map((debt) => {
-              const debtPayments = paymentPlan.map(month => 
+              const debtPayments = paymentPlan.map(month =>
                 month.debts.find(d => d.id === debt.id)
               ).filter(Boolean);
 
@@ -390,9 +395,9 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
           <CardTitle>Importar Datos</CardTitle>
         </CardHeader>
         <CardContent>
-          <input 
-            type="file" 
-            accept=".json,.csv" 
+          <input
+            type="file"
+            accept=".json,.csv"
             onChange={handleFileImport}
             className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4

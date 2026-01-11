@@ -53,13 +53,13 @@ export default function Index() {
   const statistics = useMemo(() => ({
     totalDebt: debts.reduce((sum, debt) => sum + debt.balance, 0),
     totalMinimumPayments: debts.reduce((sum, debt) => sum + debt.minimumPayment, 0),
-    averageInterestRate: debts.length > 0 
-      ? debts.reduce((sum, debt) => sum + debt.interestRate, 0) / debts.length 
+    averageInterestRate: debts.length > 0
+      ? debts.reduce((sum, debt) => sum + debt.interestRate, 0) / debts.length
       : 0
   }), [debts]);
 
   // Calculate snowball plan
-  const snowballPlan = monthlyBudget > 0 && debts.length > 0 
+  const snowballPlan = monthlyBudget > 0 && debts.length > 0
     ? calculateSnowballPlan(debts, monthlyBudget)
     : null;
 
@@ -69,16 +69,17 @@ export default function Index() {
   // Validation function for debt data
   const validateDebt = (debt: ImportedDebt): boolean => {
     if (!debt.name || debt.name.trim().length === 0) return false;
-    if (debt.balance <= 0) return false;
-    if (debt.interestRate < 0 || debt.interestRate > 100) return false;
-    if (debt.minimumPayment <= 0 || debt.minimumPayment > debt.balance) return false;
-    if (!Date.parse(debt.startDate)) return false;
+    if (typeof debt.balance !== 'number' || isNaN(debt.balance) || debt.balance <= 0) return false;
+    if (typeof debt.interestRate !== 'number' || isNaN(debt.interestRate) || debt.interestRate < 0 || debt.interestRate > 100) return false;
+    if (typeof debt.minimumPayment !== 'number' || isNaN(debt.minimumPayment) || debt.minimumPayment <= 0 || debt.minimumPayment > debt.balance) return false;
+    if (!debt.startDate || !Date.parse(debt.startDate)) return false;
     return true;
   };
 
   // Memoize handlers
   const handleAddDebt = useCallback((debtData: ImportedDebt) => {
     if (!validateDebt(debtData)) {
+      console.error('Datos de deuda inválidos:', debtData);
       toast({
         title: "Error",
         description: "Por favor verifica los datos de la deuda",
@@ -341,7 +342,7 @@ export default function Index() {
 
             <TabsContent value="add" className="space-y-4">
               <h2 className="text-2xl font-bold">Agregar Nueva Deuda</h2>
-              
+
               <DebtForm
                 onAddDebt={handleAddDebt}
                 editingDebt={editingDebt || undefined}

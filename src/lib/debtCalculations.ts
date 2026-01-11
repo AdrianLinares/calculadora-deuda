@@ -25,18 +25,43 @@ export interface PaymentMonth {
   remainingDebts: number;
 }
 
+/**
+ * Calcula el interés mensual de una deuda
+ * @param balance - Saldo actual de la deuda
+ * @param annualRate - Tasa de interés anual en porcentaje (0-100)
+ * @returns Interés mensual calculado
+ * @example
+ * calculateMonthlyInterest(1000, 12) // 10
+ */
 export function calculateMonthlyInterest(balance: number, annualRate: number): number {
   return (balance * (annualRate / 100)) / 12;
 }
 
+/**
+ * Ordena deudas por método bola de nieve (de menor a mayor saldo)
+ * @param debts - Array de deudas a ordenar
+ * @returns Nuevo array ordenado de menor a mayor saldo
+ */
 export function sortDebtsBySnowball(debts: Debt[]): Debt[] {
   return [...debts].sort((a, b) => a.balance - b.balance);
 }
 
+/**
+ * Ordena deudas por método avalancha (de mayor a menor tasa de interés)
+ * @param debts - Array de deudas a ordenar
+ * @returns Nuevo array ordenado por tasa de interés descendente
+ */
 export function sortDebtsByAvalanche(debts: Debt[]): Debt[] {
   return [...debts].sort((a, b) => b.interestRate - a.interestRate);
 }
 
+/**
+ * Calcula el plan de pago usando el método bola de nieve
+ * @param debts - Array de deudas
+ * @param monthlyBudget - Presupuesto mensual disponible
+ * @returns Plan de pago con detalles mensuales y totales
+ * @throws Error con código 'INSUFFICIENT_BUDGET' si el presupuesto es menor que los pagos mínimos
+ */
 export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
   paymentPlan: PaymentMonth[];
   totalMonths: number;
@@ -44,6 +69,8 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
   totalPaid: number;
   debtFreeDate: string;
 } {
+  const MAX_MONTHS = 600; // 50 años máximo
+
   if (debts.length === 0 || monthlyBudget <= 0) {
     return {
       paymentPlan: [],
@@ -70,7 +97,7 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
     month++;
     const currentDate = new Date(startDate);
     currentDate.setMonth(currentDate.getMonth() + month - 1);
-    
+
     const monthData: PaymentMonth = {
       month,
       date: currentDate.toISOString().split('T')[0],
@@ -111,7 +138,7 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
 
       const startingBalance = debt.balance;
       const monthlyInterest = calculateMonthlyInterest(debt.balance, debt.interestRate);
-      
+
       // Determine payment amount (minimum + possible extra only once per month)
       let payment = debt.minimumPayment;
       if (!appliedExtraThisMonth && extraAmount > 0) {
@@ -155,7 +182,8 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
     paymentPlan.push(monthData);
 
     // Safety check to prevent infinite loops
-    if (month > 600) { // 50 years max
+    if (month > MAX_MONTHS) {
+      console.warn(`Debt payoff exceeds ${MAX_MONTHS} months (50 years)`);
       break;
     }
   }
@@ -175,6 +203,10 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
   };
 }
 
+/**
+ * Calcula el tiempo y costo de pagar solo el m\u00ednimo de cada deuda
+ * @param debts - Array de deudas
+ * @returns Total de meses, inter\u00e9s y monto pagado con solo m\u00ednimos\n */
 export function calculateMinimumOnlyPlan(debts: Debt[]): {
   totalMonths: number;
   totalInterest: number;
@@ -201,7 +233,7 @@ export function calculateMinimumOnlyPlan(debts: Debt[]): {
       while (balance > 0.01 && months < 600) {
         const interestPayment = balance * monthlyRate;
         const principalPayment = Math.max(0, debt.minimumPayment - interestPayment);
-        
+
         if (principalPayment <= 0) {
           // Minimum payment doesn't cover interest - debt will never be paid off
           months = 600;
@@ -212,7 +244,7 @@ export function calculateMinimumOnlyPlan(debts: Debt[]): {
         interestPaid += interestPayment;
         months++;
       }
-      
+
       totalPaid += debt.balance + interestPaid;
     }
 

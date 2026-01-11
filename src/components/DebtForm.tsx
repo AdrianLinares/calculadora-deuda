@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Debt } from '@/lib/debtCalculations';
+import { DEBT_LIMITS } from '@/lib/constants';
 
 interface DebtFormProps {
   onAddDebt: (debt: Omit<Debt, 'id'>) => void;
@@ -11,14 +12,6 @@ interface DebtFormProps {
   onUpdateDebt?: (debt: Debt) => void;
   onCancel?: () => void;
 }
-
-const FORM_CONSTANTS = {
-  MAX_NAME_LENGTH: 100,
-  MAX_BALANCE: 999999999,
-  MAX_DECIMALS: 2,
-  MIN_INTEREST_RATE: 0,
-  MAX_INTEREST_RATE: 100,
-} as const;
 
 export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: DebtFormProps) {
   const [formData, setFormData] = useState({
@@ -42,32 +35,33 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
     }
 
     // Add max length validation
-    if (formData.name.length > FORM_CONSTANTS.MAX_NAME_LENGTH) {
-      newErrors.name = `El nombre es demasiado largo (máximo ${FORM_CONSTANTS.MAX_NAME_LENGTH} caracteres)`;
+    if (formData.name.length > DEBT_LIMITS.MAX_NAME_LENGTH) {
+      newErrors.name = `El nombre es demasiado largo (máximo ${DEBT_LIMITS.MAX_NAME_LENGTH} caracteres)`;
     }
 
-    const balance = parseFloat(formData.balance);
+    const balance = parseFloat(formData.balance.replace(/,/g, ''));
     if (isNaN(balance) || balance <= 0) {
       newErrors.balance = 'El saldo debe ser mayor a 0';
     }
 
     // Add maximum validation
-    if (balance > FORM_CONSTANTS.MAX_BALANCE) {
+    if (balance > DEBT_LIMITS.MAX_BALANCE) {
       newErrors.balance = 'El saldo excede el límite permitido';
     }
 
     // Add decimal places validation
-    if (formData.balance.includes('.') && 
-        formData.balance.split('.')[1].length > FORM_CONSTANTS.MAX_DECIMALS) {
-      newErrors.balance = `Máximo ${FORM_CONSTANTS.MAX_DECIMALS} decimales permitidos`;
+    const cleanBalance = formData.balance.replace(/,/g, '');
+    if (cleanBalance.includes('.') &&
+      cleanBalance.split('.')[1].length > DEBT_LIMITS.DECIMAL_PLACES) {
+      newErrors.balance = `Máximo ${DEBT_LIMITS.DECIMAL_PLACES} decimales permitidos`;
     }
 
     const interestRate = parseFloat(formData.interestRate);
-    if (isNaN(interestRate) || interestRate < FORM_CONSTANTS.MIN_INTEREST_RATE || interestRate > FORM_CONSTANTS.MAX_INTEREST_RATE) {
-      newErrors.interestRate = 'La tasa debe estar entre 0 y 100%';
+    if (isNaN(interestRate) || interestRate < DEBT_LIMITS.MIN_INTEREST_RATE || interestRate > DEBT_LIMITS.MAX_INTEREST_RATE) {
+      newErrors.interestRate = `La tasa debe estar entre ${DEBT_LIMITS.MIN_INTEREST_RATE} y ${DEBT_LIMITS.MAX_INTEREST_RATE}%`;
     }
 
-    const minimumPayment = parseFloat(formData.minimumPayment);
+    const minimumPayment = parseFloat(formData.minimumPayment.replace(/,/g, ''));
     if (isNaN(minimumPayment) || minimumPayment <= 0) {
       newErrors.minimumPayment = 'El pago mínimo debe ser mayor a 0';
     }
@@ -82,16 +76,19 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      if (!validateForm()) return;
-      
       const debtData = {
         name: formData.name.trim(),
-        balance: parseFloat(formData.balance),
+        balance: parseFloat(formData.balance.replace(/,/g, '')),
         interestRate: parseFloat(formData.interestRate),
-        minimumPayment: parseFloat(formData.minimumPayment),
+        minimumPayment: parseFloat(formData.minimumPayment.replace(/,/g, '')),
         startDate: formData.startDate
       };
 
@@ -109,6 +106,10 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
         minimumPayment: '',
         startDate: new Date().toISOString().split('T')[0]
       });
+      setErrors({});
+      setIsDirty(false);
+    } catch (error) {
+      console.error('Error submitting debt:', error);
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +189,7 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
 
   const ErrorSummary = ({ errors }: { errors: Record<string, string> }) => {
     if (Object.keys(errors).length === 0) return null;
-    
+
     return (
       <div className="bg-red-50 p-4 rounded-md mb-4">
         <h3 className="text-red-800 font-medium mb-2">Por favor corrige los siguientes errores:</h3>
@@ -209,83 +210,83 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
         </CardTitle>
       </CardHeader>
       <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <ErrorSummary errors={errors} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre del Acreedor/Deuda</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Ej: Tarjeta de Crédito Banco X"
-                  className={errors.name ? 'border-red-500' : ''}
-                />
-                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="balance">Saldo Total ($)</Label>
-                <Input
-                  id="balance"
-                  type="text"
-                  value={formData.balance}
-                  onChange={(e) => handleCurrencyInput('balance', e.target.value)}
-                  className={errors.balance ? 'border-red-500' : ''}
-                />
-                {errors.balance && <p className="text-sm text-red-500">{errors.balance}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="interestRate">Tasa de Interés Anual (%)</Label>
-                <Input
-                  id="interestRate"
-                  type="number"
-                  step="0.01"
-                  value={formData.interestRate}
-                  onChange={(e) => handleInputChange('interestRate', e.target.value)}
-                  placeholder="0.00"
-                  className={errors.interestRate ? 'border-red-500' : ''}
-                />
-                {errors.interestRate && <p className="text-sm text-red-500">{errors.interestRate}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="minimumPayment">Pago Mínimo Mensual ($)</Label>
-                <Input
-                  id="minimumPayment"
-                  type="text"
-                  value={formData.minimumPayment}
-                  onChange={(e) => handleCurrencyInput('minimumPayment', e.target.value)}
-                  className={errors.minimumPayment ? 'border-red-500' : ''}
-                />
-                {errors.minimumPayment && <p className="text-sm text-red-500">{errors.minimumPayment}</p>}
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="startDate">Fecha de Inicio</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange('startDate', e.target.value)}
-                  className={errors.startDate ? 'border-red-500' : ''}
-                />
-                {errors.startDate && <p className="text-sm text-red-500">{errors.startDate}</p>}
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <ErrorSummary errors={errors} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre del Acreedor/Deuda</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Ej: Tarjeta de Crédito Banco X"
+                className={errors.name ? 'border-red-500' : ''}
+              />
+              {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit" className="flex-1" isLoading={isLoading}>
-                {editingDebt ? 'Actualizar Deuda' : 'Agregar Deuda'}
+            <div className="space-y-2">
+              <Label htmlFor="balance">Saldo Total ($)</Label>
+              <Input
+                id="balance"
+                type="text"
+                value={formData.balance}
+                onChange={(e) => handleCurrencyInput('balance', e.target.value)}
+                className={errors.balance ? 'border-red-500' : ''}
+              />
+              {errors.balance && <p className="text-sm text-red-500">{errors.balance}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interestRate">Tasa de Interés Anual (%)</Label>
+              <Input
+                id="interestRate"
+                type="number"
+                step="0.01"
+                value={formData.interestRate}
+                onChange={(e) => handleInputChange('interestRate', e.target.value)}
+                placeholder="0.00"
+                className={errors.interestRate ? 'border-red-500' : ''}
+              />
+              {errors.interestRate && <p className="text-sm text-red-500">{errors.interestRate}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="minimumPayment">Pago Mínimo Mensual ($)</Label>
+              <Input
+                id="minimumPayment"
+                type="text"
+                value={formData.minimumPayment}
+                onChange={(e) => handleCurrencyInput('minimumPayment', e.target.value)}
+                className={errors.minimumPayment ? 'border-red-500' : ''}
+              />
+              {errors.minimumPayment && <p className="text-sm text-red-500">{errors.minimumPayment}</p>}
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="startDate">Fecha de Inicio</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                className={errors.startDate ? 'border-red-500' : ''}
+              />
+              {errors.startDate && <p className="text-sm text-red-500">{errors.startDate}</p>}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="submit" className="flex-1" isLoading={isLoading}>
+              {editingDebt ? 'Actualizar Deuda' : 'Agregar Deuda'}
+            </Button>
+            {editingDebt && onCancel && (
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancelar
               </Button>
-              {editingDebt && onCancel && (
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </form>
+            )}
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

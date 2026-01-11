@@ -82,11 +82,11 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
       const minimumOnlyResults = calculateMinimumOnlyPlan(debts);
       setResults(snowballResults);
       setMinimumResults(minimumOnlyResults);
-      
+
       if (onBudgetChange) {
         onBudgetChange(budget);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al calcular resultados');
       setResults(null);
       setMinimumResults(null);
@@ -97,7 +97,7 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
 
   // Update the debounce implementation
   const debouncedCalculate = useMemo(
-    () => debounce(calculateResults, CALCULATOR_CONSTANTS.DEBOUNCE_MS),
+    () => debounce((): void => calculateResults(), CALCULATOR_CONSTANTS.DEBOUNCE_MS),
     [debts, monthlyBudget]
   );
 
@@ -115,23 +115,23 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
   const budgetNumber = parseFloat(monthlyBudget) || 0;
   const extraAmount = Math.max(0, budgetNumber - minimumPaymentsTotal);
 
-  const savings = minimumResults && results 
-    ? minimumResults.totalPaid - results.totalPaid 
+  const savings = minimumResults && results
+    ? minimumResults.totalPaid - results.totalPaid
     : 0;
 
-  const timeSaved = minimumResults && results 
-    ? minimumResults.totalMonths - results.totalMonths 
+  const timeSaved = minimumResults && results
+    ? minimumResults.totalMonths - results.totalMonths
     : 0;
 
   // Memoize expensive calculations
-  const sortedDebts = useMemo(() => 
-    sortDebtsBySnowball(debts), 
+  const sortedDebts = useMemo(() =>
+    sortDebtsBySnowball(debts),
     [debts]
   );
 
   const resultsSummary = useMemo(() => {
     if (!results || !minimumResults) return null;
-    
+
     return {
       savings: minimumResults.totalPaid - results.totalPaid,
       timeSaved: minimumResults.totalMonths - results.totalMonths,
@@ -144,13 +144,13 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
   const handleBudgetChange = (value: string) => {
     // Remove non-numeric characters except decimal point
     const sanitizedValue = value.replace(/[^\d.]/g, '');
-    
+
     // Ensure only one decimal point
     const parts = sanitizedValue.split('.');
-    const formattedValue = parts.length > 2 
+    const formattedValue = parts.length > 2
       ? `${parts[0]}.${parts.slice(1).join('')}`
       : sanitizedValue;
-      
+
     // Limit to 2 decimal places
     if (parts[1]?.length > CALCULATOR_CONSTANTS.INPUT_DECIMAL_PLACES) {
       return;
@@ -191,9 +191,8 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
 
             <div className="space-y-2">
               <Label>Dinero Extra Disponible</Label>
-              <div className={`p-2 rounded text-center font-semibold ${
-                extraAmount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
+              <div className={`p-2 rounded text-center font-semibold ${extraAmount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
                 {formatCurrency(extraAmount)}
               </div>
             </div>
@@ -218,8 +217,8 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
             </Alert>
           )}
 
-          <Button 
-            onClick={calculateResults} 
+          <Button
+            onClick={calculateResults}
             className="w-full"
             disabled={!monthlyBudget || debts.length === 0}
           >
