@@ -235,7 +235,7 @@ export default function Index() {
 
           {/* Main Content Tabs */}
           <Tabs defaultValue="debts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto gap-1">
               <TabsTrigger value="debts">Mis Deudas</TabsTrigger>
               <TabsTrigger value="calculator">Calculadora</TabsTrigger>
               <TabsTrigger value="plan">Plan de Pagos</TabsTrigger>
@@ -250,10 +250,10 @@ export default function Index() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="debts" className="space-y-4">
-              <div className="flex items-center justify-between">
+            <TabsContent value="debts" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-bold">Gestión de Deudas</h2>
-                <Button onClick={() => setShowAddForm(true)}>
+                <Button onClick={() => setShowAddForm(true)} className="w-full sm:w-auto">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Agregar Deuda
                 </Button>
@@ -276,11 +276,11 @@ export default function Index() {
               />
             </TabsContent>
 
-            <TabsContent value="calculator" className="space-y-4">
-              <div className="flex items-center justify-between">
+            <TabsContent value="calculator" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-bold">Calculadora Bola de Nieve</h2>
                 {debts.length === 0 && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="w-fit">
                     Agrega deudas para comenzar
                   </Badge>
                 )}
@@ -292,11 +292,11 @@ export default function Index() {
               />
             </TabsContent>
 
-            <TabsContent value="plan" className="space-y-4">
-              <div className="flex items-center justify-between">
+            <TabsContent value="plan" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-bold">Plan de Pagos Detallado</h2>
                 {!snowballPlan && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="w-fit">
                     Configura tu presupuesto mensual
                   </Badge>
                 )}
@@ -308,11 +308,11 @@ export default function Index() {
               />
             </TabsContent>
 
-            <TabsContent value="charts" className="space-y-4">
-              <div className="flex items-center justify-between">
+            <TabsContent value="charts" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-bold">Visualizaciones</h2>
                 {debts.length === 0 && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="w-fit">
                     Agrega deudas para ver gráficos
                   </Badge>
                 )}
@@ -324,10 +324,10 @@ export default function Index() {
               />
             </TabsContent>
 
-            <TabsContent value="data" className="space-y-4">
-              <div className="flex items-center justify-between">
+            <TabsContent value="data" className="space-y-4 mt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-2xl font-bold">Gestión de Datos</h2>
-                <Badge variant="outline">
+                <Badge variant="outline" className="w-fit">
                   Exportar/Importar JSON
                 </Badge>
               </div>
@@ -340,7 +340,7 @@ export default function Index() {
               />
             </TabsContent>
 
-            <TabsContent value="add" className="space-y-4">
+            <TabsContent value="add" className="space-y-4 mt-4">
               <h2 className="text-2xl font-bold">Agregar Nueva Deuda</h2>
 
               <DebtForm

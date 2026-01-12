@@ -108,6 +108,9 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
       });
       setErrors({});
       setIsDirty(false);
+
+      // Close form after successful submission
+      onCancel?.();
     } catch (error) {
       console.error('Error submitting debt:', error);
     } finally {
@@ -280,7 +283,7 @@ export function DebtForm({ onAddDebt, editingDebt, onUpdateDebt, onCancel }: Deb
             <Button type="submit" className="flex-1" isLoading={isLoading}>
               {editingDebt ? 'Actualizar Deuda' : 'Agregar Deuda'}
             </Button>
-            {editingDebt && onCancel && (
+            {onCancel && (
               <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancelar
               </Button>

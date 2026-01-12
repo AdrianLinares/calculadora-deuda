@@ -31,7 +31,7 @@ export function DebtList({ debts, onEditDebt, onDeleteDebt, sortedBySnowball = f
   const totals = useMemo(() => ({
     balance: debts.reduce((sum, debt) => sum + debt.balance, 0),
     minimumPayments: debts.reduce((sum, debt) => sum + debt.minimumPayment, 0),
-    averageRate: debts.length > 0 
+    averageRate: debts.length > 0
       ? (debts.reduce((sum, debt) => sum + debt.interestRate, 0) / debts.length)
       : 0
   }), [debts]);
@@ -81,11 +81,11 @@ export function DebtList({ debts, onEditDebt, onDeleteDebt, sortedBySnowball = f
     }
   };
 
-  const DebtCard = memo(({ debt, index, onEdit, onDelete }: { 
-    debt: Debt; 
-    index: number; 
-    onEdit: (debt: Debt) => void; 
-    onDelete: (id: string) => void; 
+  const DebtCard = memo(({ debt, index, onEdit, onDelete }: {
+    debt: Debt;
+    index: number;
+    onEdit: (debt: Debt) => void;
+    onDelete: (id: string) => void;
   }) => {
     return (
       <Card className="relative">
@@ -96,7 +96,7 @@ export function DebtList({ debts, onEditDebt, onDeleteDebt, sortedBySnowball = f
             </Badge>
           </div>
         )}
-        
+
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{debt.name}</CardTitle>
@@ -125,45 +125,47 @@ export function DebtList({ debts, onEditDebt, onDeleteDebt, sortedBySnowball = f
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <div>
+              <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground">Saldo</p>
-                <p className="font-semibold text-lg">
+                <p className="font-semibold text-lg truncate">
                   {formatCurrency(debt.balance)}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Percent className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Tasa Anual</p>
-                <p className="font-semibold">
-                  {debt.interestRate.toFixed(2)}%
-                </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <Percent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">Tasa Anual</p>
+                  <p className="font-semibold truncate">
+                    {debt.interestRate.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground">Fecha Inicio</p>
+                  <p className="font-semibold text-sm truncate">
+                    {formatDate(debt.startDate)}
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <div>
+              <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
                 <p className="text-sm text-muted-foreground">Pago Mínimo</p>
-                <p className="font-semibold">
+                <p className="font-semibold truncate">
                   {formatCurrency(debt.minimumPayment)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Fecha Inicio</p>
-                <p className="font-semibold text-sm">
-                  {formatDate(debt.startDate)}
                 </p>
               </div>
             </div>
@@ -186,44 +188,50 @@ export function DebtList({ debts, onEditDebt, onDeleteDebt, sortedBySnowball = f
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold">
-              Lista de Deudas {sortedBySnowball && '(Ordenadas por Método Bola de Nieve)'}
-            </h3>
-            {sortedBySnowball && (
-              <div className="p-2 rounded bg-blue-50 text-blue-800 text-xs flex items-center gap-2">
-                <Info className="h-3 w-3" /> Ordenadas por saldo ascendente (Bola de Nieve)
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2 flex-1">
+              <h3 className="text-lg font-semibold leading-tight">
+                Lista de Deudas {sortedBySnowball && '(Ordenadas por Método Bola de Nieve)'}
+              </h3>
+              {sortedBySnowball && (
+                <div className="p-2 rounded bg-blue-50 text-blue-800 text-xs flex items-start gap-2 max-w-full">
+                  <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                  <span className="leading-tight">Ordenadas por saldo ascendente (Bola de Nieve)</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap">
+              <Badge variant="secondary" className="flex-shrink-0">
+                {debts.length} deuda{debts.length !== 1 ? 's' : ''}
+              </Badge>
+              <div className="flex rounded-md overflow-hidden border flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 flex items-center gap-1.5 text-sm transition ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+                  aria-label="Vista en tarjetas"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden sm:inline">Tarjetas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 flex items-center gap-1.5 text-sm transition border-l ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+                  aria-label="Vista en lista"
+                >
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">Lista</span>
+                </button>
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              {debts.length} deuda{debts.length !== 1 ? 's' : ''}
-            </Badge>
-            <div className="flex rounded-md overflow-hidden border">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 flex items-center gap-1 text-sm transition ${viewMode==='grid' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
-                aria-label="Vista en tarjetas"
-              >
-                <LayoutGrid className="h-4 w-4" /> Tarjetas
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 flex items-center gap-1 text-sm transition border-l ${viewMode==='list' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
-                aria-label="Vista en lista"
-              >
-                <List className="h-4 w-4" /> Lista
-              </button>
             </div>
           </div>
         </div>
 
         {viewMode === 'grid' && (
-          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
             {debts.map((debt, index) => (
               <DebtCard key={debt.id} debt={debt} index={index} onEdit={onEditDebt} onDelete={onDeleteDebt} />
             ))}

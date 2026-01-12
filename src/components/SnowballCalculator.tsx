@@ -66,25 +66,25 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
   const calculateResults = () => {
     try {
       setError(null);
-      const budget = parseFloat(monthlyBudget);
-      if (isNaN(budget) || budget <= 0) {
-        throw new Error('El presupuesto debe ser mayor a 0');
+      const additionalBudget = parseFloat(monthlyBudget);
+      if (isNaN(additionalBudget) || additionalBudget < 0) {
+        throw new Error('El presupuesto adicional no puede ser negativo');
       }
       if (debts.length === 0) {
         throw new Error('Agrega al menos una deuda para calcular');
       }
-      if (budget < minimumPaymentsTotal) {
-        throw new Error(`El presupuesto debe ser al menos ${formatCurrency(minimumPaymentsTotal)}`);
-      }
+
+      // Sumar presupuesto adicional a los pagos mínimos
+      const totalBudget = minimumPaymentsTotal + additionalBudget;
 
       setIsLoading(true);
-      const snowballResults = calculateSnowballPlan(debts, budget);
+      const snowballResults = calculateSnowballPlan(debts, totalBudget);
       const minimumOnlyResults = calculateMinimumOnlyPlan(debts);
       setResults(snowballResults);
       setMinimumResults(minimumOnlyResults);
 
       if (onBudgetChange) {
-        onBudgetChange(budget);
+        onBudgetChange(totalBudget);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al calcular resultados');
@@ -113,7 +113,6 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
 
   const minimumPaymentsTotal = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
   const budgetNumber = parseFloat(monthlyBudget) || 0;
-  const extraAmount = Math.max(0, budgetNumber - minimumPaymentsTotal);
 
   const savings = minimumResults && results
     ? minimumResults.totalPaid - results.totalPaid
@@ -171,13 +170,13 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="budget">Presupuesto Mensual para Deudas ($)</Label>
+              <Label htmlFor="budget">Presupuesto Adicional para Deudas ($)</Label>
               <Input
                 id="budget"
                 type="text"
                 value={monthlyBudget}
                 onChange={(e) => handleBudgetChange(e.target.value)}
-                placeholder="Ingresa tu presupuesto mensual"
+                placeholder="Ingresa dinero extra disponible"
                 className={error ? 'border-red-500' : ''}
               />
             </div>
@@ -190,24 +189,13 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
             </div>
 
             <div className="space-y-2">
-              <Label>Dinero Extra Disponible</Label>
-              <div className={`p-2 rounded text-center font-semibold ${extraAmount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              <Label>Presupuesto Total Mensual</Label>
+              <div className={`p-2 rounded text-center font-semibold ${budgetNumber >= 0 ? 'bg-blue-100 text-blue-800' : 'bg-muted'
                 }`}>
-                {formatCurrency(extraAmount)}
+                {formatCurrency(minimumPaymentsTotal + budgetNumber)}
               </div>
             </div>
           </div>
-
-          {budgetNumber > 0 && budgetNumber < minimumPaymentsTotal && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium">
-                ⚠️ El presupuesto es insuficiente para cubrir los pagos mínimos requeridos.
-              </p>
-              <p className="text-red-700 text-sm mt-1">
-                Necesitas al menos {formatCurrency(minimumPaymentsTotal)} mensuales.
-              </p>
-            </div>
-          )}
 
           {error && (
             <Alert variant="destructive">
@@ -220,7 +208,7 @@ export function SnowballCalculator({ debts, onBudgetChange }: SnowballCalculator
           <Button
             onClick={calculateResults}
             className="w-full"
-            disabled={!monthlyBudget || debts.length === 0}
+            disabled={debts.length === 0}
           >
             Calcular Plan de Pagos
           </Button>
