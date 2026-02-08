@@ -107,35 +107,21 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
       remainingDebts: workingDebts.filter(d => d.balance > 0).length
     };
 
-    // Calculate minimum payments total
-    const minimumTotal = workingDebts
-      .filter(debt => debt.balance > 0)
-      .reduce((sum, debt) => sum + debt.minimumPayment, 0);
+    // Calculate minimum payments total for unpaid debts
+    const activeDebts = workingDebts.filter(debt => debt.balance > 0);
+    const minimumTotal = activeDebts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
 
     if (minimumTotal > monthlyBudget) {
       throw new Error('INSUFFICIENT_BUDGET');
     }
 
-    // Extra amount for snowball (only first unpaid debt gets it unless leftover remains)
-    let extraAmount = monthlyBudget - minimumTotal;
+    // Available budget for this month - only distribute among active debts
+    let availableBudget = monthlyBudget;
+    let extraAmount = availableBudget - minimumTotal;
     appliedExtraThisMonth = false;
 
     // Process each debt
-    for (const debt of workingDebts) {
-      if (debt.balance <= 0) {
-        monthData.debts.push({
-          id: debt.id,
-          name: debt.name,
-          startingBalance: 0,
-          payment: 0,
-          interestPaid: 0,
-          principalPaid: 0,
-          endingBalance: 0,
-          isCompleted: true
-        });
-        continue;
-      }
-
+    for (const debt of activeDebts) {
       const startingBalance = debt.balance;
       const monthlyInterest = calculateMonthlyInterest(debt.balance, debt.interestRate);
 
@@ -177,6 +163,20 @@ export function calculateSnowballPlan(debts: Debt[], monthlyBudget: number): {
 
       monthData.totalPayment += payment;
       monthData.totalInterest += interestPaid;
+    }
+
+    // Add zero payments for already completed debts so they appear in the table
+    for (const debt of workingDebts.filter(d => d.balance <= 0)) {
+      monthData.debts.push({
+        id: debt.id,
+        name: debt.name,
+        startingBalance: 0,
+        payment: 0,
+        interestPaid: 0,
+        principalPaid: 0,
+        endingBalance: 0,
+        isCompleted: true
+      });
     }
 
     paymentPlan.push(monthData);

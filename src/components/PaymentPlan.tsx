@@ -270,59 +270,45 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
                     <TableRow>
                       <TableHead>Mes</TableHead>
                       <TableHead>Fecha</TableHead>
-                      <TableHead>Deuda Objetivo</TableHead>
-                      <TableHead>Pago Total</TableHead>
-                      <TableHead>Intereses</TableHead>
-                      <TableHead>Deudas Restantes</TableHead>
+                      <TableHead>Deuda</TableHead>
+                      <TableHead>Saldo Inicial</TableHead>
+                      <TableHead>Pago</TableHead>
+                      <TableHead>Interés</TableHead>
+                      <TableHead>Principal</TableHead>
+                      <TableHead>Saldo Final</TableHead>
                       <TableHead>Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayedPlan.map((month) => {
-                      const targetDebt = month.debts.find(debt => debt.payment > debt.startingBalance * 0.1 && debt.startingBalance > 0);
-                      const completedThisMonth = month.debts.filter(debt => debt.isCompleted && debt.startingBalance > 0);
+                      const activeDebts = month.debts.filter(debt => debt.startingBalance > 0 || debt.payment > 0);
 
-                      return (
-                        <TableRow key={month.month}>
-                          <TableCell className="font-medium">{month.month}</TableCell>
-                          <TableCell>{formatDate(month.date)}</TableCell>
+                      return activeDebts.map((debt, idx) => (
+                        <TableRow key={`${month.month}-${debt.id}`} className={debt.isCompleted ? 'bg-green-50' : ''}>
+                          {idx === 0 && (
+                            <>
+                              <TableCell className="font-medium" rowSpan={activeDebts.length}>{month.month}</TableCell>
+                              <TableCell rowSpan={activeDebts.length}>{formatDate(month.date)}</TableCell>
+                            </>
+                          )}
+                          <TableCell className="font-medium">{debt.name}</TableCell>
+                          <TableCell>{formatCurrency(debt.startingBalance)}</TableCell>
+                          <TableCell className="font-semibold">{formatCurrency(debt.payment)}</TableCell>
+                          <TableCell className="text-red-600">{formatCurrency(debt.interestPaid)}</TableCell>
+                          <TableCell className="text-blue-600">{formatCurrency(debt.principalPaid)}</TableCell>
+                          <TableCell className="font-semibold">{formatCurrency(debt.endingBalance)}</TableCell>
                           <TableCell>
-                            {targetDebt ? (
-                              <div>
-                                <p className="font-medium">{targetDebt.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatCurrency(targetDebt.payment)}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {formatCurrency(month.totalPayment)}
-                          </TableCell>
-                          <TableCell className="text-red-600">
-                            {formatCurrency(month.totalInterest)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {month.remainingDebts}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {completedThisMonth.length > 0 ? (
+                            {debt.isCompleted ? (
                               <div className="flex items-center gap-1 text-green-600">
                                 <CheckCircle className="h-4 w-4" />
-                                <span className="text-sm">
-                                  {completedThisMonth.length} eliminada{completedThisMonth.length > 1 ? 's' : ''}
-                                </span>
+                                <span className="text-sm">Pagada</span>
                               </div>
                             ) : (
-                              <TrendingDown className="h-4 w-4 text-blue-600" />
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">En proceso</span>
                             )}
                           </TableCell>
                         </TableRow>
-                      );
+                      ));
                     })}
                   </TableBody>
                 </Table>
@@ -351,7 +337,17 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
 
               const totalPaid = debtPayments.reduce((sum, payment) => sum + (payment?.payment || 0), 0);
               const totalInterest = debtPayments.reduce((sum, payment) => sum + (payment?.interestPaid || 0), 0);
-              const monthsToPayOff = debtPayments.findIndex(payment => payment?.isCompleted) + 1;
+
+              // Find the month when debt is completed
+              const completionIndex = debtPayments.findIndex(payment => payment?.isCompleted && payment?.endingBalance === 0);
+              const monthsToPayOff = completionIndex >= 0 ? completionIndex + 1 : null;
+
+              // Get completion date
+              const completionMonth = monthsToPayOff !== null ? paymentPlan[completionIndex] : null;
+              const completionDate = completionMonth ? new Date(completionMonth.date) : null;
+              const formattedCompletionDate = completionDate
+                ? completionDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'short' })
+                : 'En progreso';
 
               return (
                 <Card key={debt.id}>
@@ -363,7 +359,7 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
                       <div>
                         <p className="text-sm text-muted-foreground">Meses para pagar</p>
                         <p className="text-xl font-bold">
-                          {monthsToPayOff > 0 ? monthsToPayOff : 'En progreso'}
+                          {monthsToPayOff !== null ? monthsToPayOff : 'En progreso'}
                         </p>
                       </div>
                       <div>
@@ -375,10 +371,10 @@ export default function PaymentPlan({ paymentPlan, totalDebtAmount }: PaymentPla
                         <p className="text-xl font-bold text-red-600">{formatCurrency(totalInterest)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Estado</p>
-                        <Badge className={monthsToPayOff > 0 ? "bg-green-600" : "bg-blue-600"}>
-                          {monthsToPayOff > 0 ? "Completada" : "En progreso"}
-                        </Badge>
+                        <p className="text-sm text-muted-foreground">Fecha de pago final</p>
+                        <p className="text-xl font-bold">
+                          {formattedCompletionDate}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
